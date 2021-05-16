@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Using Nx Workspaces and Strategic Design</title>
+        <style>
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="using-nx-workspaces-and-strategic-design">Using Nx Workspaces and Strategic Design</h1>
+<ul>
+<li><a href="#using-nx-workspaces-and-strategic-design">Using Nx Workspaces and Strategic Design</a>
+<ul>
+<li><a href="#create-a-new-application">Create a New Application</a></li>
+<li><a href="#add-another-feature-library">Add Another Feature Library</a></li>
+<li><a href="#inspect-the-generated-access-rules">Inspect the Generated Access Rules</a></li>
+<li><a href="#route-between-feature-libs">Route Between Feature Libs</a></li>
+<li><a href="#detecting-affected-libraries">Detecting Affected Libraries</a></li>
+<li><a href="#bonus-implement-an-ui-library-">Bonus: Implement an UI Library **</a></li>
+<li><a href="#bonus-configure-a-shared-utility-library-">Bonus: Configure a Shared Utility Library **</a></li>
+</ul>
+</li>
+</ul>
+<p>So far, we've only used a simplified version of the architecture matrix presented. In this lab, you'll add a <strong>luggage</strong> domain with an application of its own. This domain will fully align with the ideas outlined. To prevent repeating monotonous tasks, you'll use the open source Nx plugin <code>@angular-architects/ddd</code>.</p>
+<h2 id="create-a-new-application">Create a New Application</h2>
+<ol>
+<li>
+<p>Add the Nx plugin <code>@angular-architects/ddd</code>:</p>
+<pre><code><code><div>ng add @angular-architects/ddd
+</div></code></code></pre>
+</li>
+<li>
+<p>This command added some linting rules to your global <code>tslint.json</code>. Find out which ones and what they do.</p>
+<p><strong>Hint:</strong> This task is a bit easier, if you use your IDE or editor (e. g. Visual Studio Code) to look into the current git staging environment.</p>
+</li>
+<li>
+<p>Add an <code>luggage</code> domain with an application of it's own:</p>
+<pre><code><code><div>ng g @angular-architects/ddd:domain luggage --add-app
+</div></code></code></pre>
+</li>
+<li>
+<p>Add an <code>checkin</code> feature:</p>
+<pre><code><code><div>ng g @angular-architects/ddd:feature checkin --domain luggage --entity luggage --app luggage
+</div></code></code></pre>
+</li>
+<li>
+<p>Create a dependency graph to find out about the generated structure:</p>
+<pre><code><code><div>npm run dep-graph
+</div></code></code></pre>
+<p>It should show this luggage application:</p>
+ <img src="https://i.imgur.com/XXZKzEm.png" width="180">
+</li>
+<li>
+<p>Inspect the generated libs and the generated app. You should find the following:</p>
+<ul>
+<li>
+<p>Assigned tags within <code>nx.json</code></p>
+</li>
+<li>
+<p>Further access restrictions within <code>tslint.json</code>.</p>
+</li>
+<li>
+<p>A luggage data service, a luggage entity, and a check-in facade within the generated domain library</p>
+</li>
+<li>
+<p>A check-in component within the generated feature library</p>
+</li>
+</ul>
+<p><strong>Hint:</strong> This task is a bit easier, if you use your IDE or editor (e. g. Visual Studio Code) to look into the current git staging environment.</p>
+</li>
+<li>
+<p>Make yourself familiar with these generated building blocks.</p>
+</li>
+<li>
+<p>Switch to your luggage app and open the file <code>app.component.html</code>. Remove its whole content. As the code generator wired the apps and libs up for you, you can directly call the generated <code>LuggageCheckinComponent</code>:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">luggage-checkin</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">luggage-checkin</span>&gt;</span>
+</div></code></pre>
+</li>
+<li>
+<p>Run your luggage app:</p>
+<pre><code><code><div>ng serve luggage -o
+</div></code></code></pre>
+<p>It should look like this:</p>
+<img src="https://i.imgur.com/iMhswN1.png" width="400">
+</li>
+</ol>
+<h2 id="add-another-feature-library">Add Another Feature Library</h2>
+<p>Now, let's make our luggage application look like a more typical DDD-based application by adding another feature library:</p>
+<pre><code><code><div>ng g @angular-architects/ddd:feature report-loss --domain luggage --entity loss-report --app luggage
+</div></code></code></pre>
+<p>Generate another dependency graph (<code>npm run dep-graph</code>). It should look as follows:</p>
+<img src="https://i.imgur.com/XKlNoG8.png" width="350">
+<h2 id="inspect-the-generated-access-rules">Inspect the Generated Access Rules</h2>
+<p>Now, let's try out if the generated access rules protect our architecture.</p>
+<ol>
+<li>
+<p>Restart your IDE/ editor to make sure it reads the updated <code>tsconfig.json</code>, <code>nx.json</code>, and <code>tslint.json</code>.</p>
+</li>
+<li>
+<p>Switch to the library <code>luggage-feature-report-loss</code>.</p>
+</li>
+<li>
+<p>Open the file <code>luggage-feature-report-loss.module.ts</code> and import the <code>LuggageFeatureCheckinModule</code> and the <code>FlightLibModule</code>.</p>
+<p><strong>Hint:</strong> You might need to create the necessary imports by hand.</p>
+<p><strong>Hint:</strong> If you get linting errors in your IDE/ editor, ignore them for the time being.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div>[...]
+<span class="hljs-keyword">import</span> { LuggageFeatureCheckinModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@flight-workspace/luggage/feature-checkin'</span>;
+<span class="hljs-keyword">import</span> { FlightLibModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@flight-workspace/flight-lib'</span>;
+
+<span class="hljs-meta">@NgModule</span>({
+    imports: [
+        CommonModule, 
+        LuggageDomainModule, 
+
+        <span class="hljs-comment">// Add this:</span>
+        LuggageFeatureCheckinModule,
+        FlightLibModule,
+    ],
+    declarations: [ReportLossComponent],
+    exports: [ReportLossComponent]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> LuggageFeatureReportLossModule {}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Switch to the console and lint the library:</p>
+<pre><code><code><div>ng lint luggage-feature-report-loss
+</div></code></code></pre>
+<p>You should get the following linting errors because the previously imported two modules violate our architecture:</p>
+<pre><code><code><div>ERROR: D:/bak/beratung/angular2/workshops_advanced/advanced-nx-workspace/libs/luggage/feature-report-loss/src/lib/luggage-feature-report-loss.module.ts:6:1 - A project tagged with &quot;type:feature&quot; can only depend on libs tagged with &quot;type:ui&quot;, &quot;type:domain-logic&quot;, &quot;type:util&quot;
+
+ERROR: D:/bak/beratung/angular2/workshops_advanced/advanced-nx-workspace/libs/luggage/feature-report-loss/src/lib/luggage-feature-report-loss.module.ts:7:1 - A project tagged with &quot;domain:luggage&quot; can only depend on libs tagged with &quot;do
+main:luggage&quot;, &quot;domain:shared&quot;
+</div></code></code></pre>
+</li>
+<li>
+<p>Remove the above introduced imports (<code>LuggageFeatureCheckinModule</code>, <code>FlightLibModule</code>) again, to align with our architecture.</p>
+</li>
+<li>
+<p>Now, if you run the linter (<code>ng lint luggage-feature-report-loss</code>) again, you shouldn't  get any linting errors - at least no errors regarding access restrictions between apps and libs.</p>
+</li>
+</ol>
+<h2 id="route-between-feature-libs">Route Between Feature Libs</h2>
+<ol>
+<li>
+<p>Open the file <code>luggage-feature-checkin.module.ts</code> and add a child route for its component:</p>
+<pre><code class="language-typescript"><div>[...]
+<span class="hljs-keyword">import</span> { RouterModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/router'</span>;
+[...]
+
+<span class="hljs-meta">@NgModule</span>({
+    imports: [
+        CommonModule, 
+        LuggageDomainModule,
+
+        <span class="hljs-comment">// Add this:</span>
+        RouterModule.forChild([
+            { path: <span class="hljs-string">''</span>, component: CheckinComponent }
+        ])
+    ],
+    declarations: [CheckinComponent],
+    exports: [CheckinComponent]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> LuggageFeatureCheckinModule {}
+</div></code></pre>
+<p>For the sake of simplicity, we only use one route per feature module.</p>
+</li>
+<li>
+<p>Do the same in the <code>luggage-feature-report-loss.module.ts</code>.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+[...]
+<span class="hljs-keyword">import</span> { RouterModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/router'</span>;
+[...]
+
+<span class="hljs-meta">@NgModule</span>({
+    imports: [
+        CommonModule, 
+        LuggageDomainModule, 
+
+        <span class="hljs-comment">// Add this:</span>
+        RouterModule.forChild([
+            { path: <span class="hljs-string">''</span>, component: ReportLossComponent }
+        ])
+    ],
+    declarations: [ReportLossComponent],
+    exports: [ReportLossComponent]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> LuggageFeatureReportLossModule {}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Switch to your <code>luggage</code> app and open its <code>app.module.ts</code> file. Add the following root routes:</p>
+<pre><code class="language-typescript"><div>[...]
+<span class="hljs-keyword">import</span> { RouterModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/router'</span>;
+[...]
+
+<span class="hljs-meta">@NgModule</span>({
+    declarations: [AppComponent],
+    imports: [
+        BrowserModule, 
+
+        <span class="hljs-comment">// Remove this line:</span>
+        <span class="hljs-comment">// LuggageFeatureCheckinModule, </span>
+
+        <span class="hljs-comment">// Remove this line:</span>
+        <span class="hljs-comment">// LuggageFeatureReportLossModule,</span>
+
+        HttpClientModule, 
+
+        <span class="hljs-comment">// Add these routes:</span>
+        RouterModule.forRoot([
+            { 
+                path: <span class="hljs-string">''</span>, 
+                pathMatch: <span class="hljs-string">'full'</span>, 
+                redirectTo: <span class="hljs-string">'check-in'</span>
+            },
+            { 
+                path: <span class="hljs-string">'check-in'</span>, 
+                loadChildren: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">'@flight-workspace/luggage/feature-checkin'</span>)
+                                       .then(<span class="hljs-function"><span class="hljs-params">m</span> =&gt;</span> m.LuggageFeatureCheckinModule) 
+            },
+            { 
+                path: <span class="hljs-string">'report-loss'</span>, 
+                loadChildren: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">'@flight-workspace/luggage/feature-report-loss'</span>)
+                                       .then(<span class="hljs-function"><span class="hljs-params">m</span> =&gt;</span> m.LuggageFeatureReportLossModule) 
+            },
+        ])
+    ],
+    providers: [],
+    bootstrap: [AppComponent]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> AppModule {}
+</div></code></pre>
+<p>Please note that these routes implement <strong>lazy loading</strong> of <strong>feature modules</strong>. Hence, we must <strong>not import</strong> these modules.</p>
+</li>
+<li>
+<p>Switch to your <code>app.component.html</code> and add exchange the hard coded reference to a feature component by a <code>router-outlet</code> and a menu pointing to both features:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">routerLink</span>=<span class="hljs-string">"check-in"</span>&gt;</span>Check-in<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">routerLink</span>=<span class="hljs-string">"report-loss"</span>&gt;</span>Report Loss<span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">router-outlet</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">router-outlet</span>&gt;</span>
+</div></code></pre>
+</li>
+<li>
+<p>In order to style your luggage app a bit, add the following styles to the global <code>styles.css</code> (or <code>styles.scss</code>, etc.):</p>
+<pre><code class="language-css"><div><span class="hljs-selector-tag">body</span> {
+    <span class="hljs-attribute">font-family</span>: cursive;
+    <span class="hljs-attribute">padding-top</span>: <span class="hljs-number">80px</span>;
+    <span class="hljs-attribute">padding-left</span>: <span class="hljs-number">10px</span>;
+}
+
+<span class="hljs-selector-tag">ul</span> {
+    <span class="hljs-attribute">list-style-type</span>: none;
+    <span class="hljs-attribute">margin</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">overflow</span>: hidden;
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#333</span>;
+    <span class="hljs-attribute">position</span>: fixed;
+    <span class="hljs-attribute">top</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">left</span>: <span class="hljs-number">0</span>;
+    <span class="hljs-attribute">width</span>: <span class="hljs-number">100%</span>;
+}
+
+<span class="hljs-selector-tag">li</span> {
+    <span class="hljs-attribute">float</span>: left;
+}
+
+<span class="hljs-selector-tag">li</span> <span class="hljs-selector-tag">a</span> {
+    <span class="hljs-attribute">display</span>: block;
+    <span class="hljs-attribute">color</span>: white;
+    <span class="hljs-attribute">text-align</span>: center;
+    <span class="hljs-attribute">padding</span>: <span class="hljs-number">14px</span> <span class="hljs-number">16px</span>;
+    <span class="hljs-attribute">text-decoration</span>: none;
+    <span class="hljs-attribute">cursor</span>: pointer;
+}
+
+<span class="hljs-selector-tag">li</span> <span class="hljs-selector-tag">a</span><span class="hljs-selector-pseudo">:hover</span> {
+    <span class="hljs-attribute">background-color</span>: <span class="hljs-number">#111</span>;
+}
+</div></code></pre>
+</li>
+<li>
+<p>Start the luggage app and make sure the routing works.</p>
+ <img src="https://i.imgur.com/YxdZxWz.png" width="400">
+</li>
+</ol>
+<h2 id="detecting-affected-libraries">Detecting Affected Libraries</h2>
+<p>After performing some changes, it's important to know which apps and libs might be affected by it. To rule out all the others, Nx can dramatically speed up retesting and recompiling your system.</p>
+<ol>
+<li>
+<p>If not already done, initialize a new git repo in your workspace root:</p>
+<pre><code><code><div>git init
+</div></code></code></pre>
+<p>We need Git here, because Nx uses the Git history to find out what changed.</p>
+</li>
+<li>
+<p>Commit all your changes:</p>
+<pre><code><code><div>git add *
+git commit -m &quot;whatever ;-p&quot;
+</div></code></code></pre>
+</li>
+<li>
+<p>Switch to the <code>luggage-feature-checkin</code> lib and open the file <code>luggage-feature-checkin.module.ts</code>.</p>
+</li>
+<li>
+<p>Add a comment at the end to change the file.</p>
+</li>
+<li>
+<p>Run the script <code>affected:dep-graph</code>.</p>
+<pre><code><code><div>npm run affected:dep-graph
+</div></code></code></pre>
+</li>
+<li>
+<p>Now, you should see all affected libs and apps highlighted.</p>
+</li>
+<li>
+<p>To get the same information on the console, execute the following scripts:</p>
+<pre><code><code><div>npm run affected:libs
+npm run affected:apps
+</div></code></code></pre>
+<p><strong>Info:</strong> Please also note, that the script <code>affected:build</code> only builds the affected apps including all the libs they depend on. Also, <code>affected:test</code> only executes the unit tests of all affected libs and/or apps. The scripts <code>affected:e2e</code> do the same for end-2-end tests and <code>affected:lint</code> only executes the linter for them.</p>
+<p><strong>Important:</strong> Before calling <code>affected:build</code> you have to compile everything to fill the Nx cache: <code>npx nx build luggage --with-deps</code>.</p>
+</li>
+</ol>
+<h2 id="bonus-implement-an-ui-library-">Bonus: Implement an UI Library **</h2>
+<ol>
+<li>Add an UI library providing a <code>LuggageCardComponent</code> (similar to the <code>FlightCardComponent</code> in the <code>flight-app</code>)</li>
+</ol>
+<pre><code class="language-typescript"><div>ng g lib ui-card --directory luggage --publishable --importPath <span class="hljs-meta">@flight</span>-workspace/luggage-ui-card
+</div></code></pre>
+<p><strong>Remarks:</strong> The <code>publishable</code> (also <code>buildable</code>) switch makes sure the library can be compiled separately which is the key for incremental compilation.</p>
+<ol start="2">
+<li>
+<p>Now let's create a linting error: Import this module into your <code>luggage-feature-checkin.module.ts</code>:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">import</span> { LuggageUiCardModule  } <span class="hljs-keyword">from</span> <span class="hljs-string">'@flight-workspace/luggage/ui-card'</span>;
+
+[...]
+
+<span class="hljs-meta">@NgModule</span>({
+imports: [
+    CommonModule, 
+    LuggageDomainModule,
+
+    <span class="hljs-comment">// Add this:</span>
+    LuggageUiCardModule
+],
+declarations: [CheckinComponent],
+exports: [CheckinComponent]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> LuggageFeatureCheckinModule {}
+</div></code></pre>
+</li>
+<li>
+<p>Please note that the linter tells you now, that this access isn't allowed. If you don't get the linting error in your IDE, start the linter on the command line (<code>ng lint luggage-feature-checkin</code>).</p>
+</li>
+<li>
+<p>Make sure, this UI library can only be accessed by the feature libraries in your domain. For this, open your <code>nx.json</code> assign the following tags to the lib:</p>
+<pre><code class="language-json"><div><span class="hljs-string">"luggage-ui-card"</span>: {
+  <span class="hljs-attr">"tags"</span>: [<span class="hljs-string">"domain:luggage"</span>, <span class="hljs-string">"type:ui"</span>]
+},
+</div></code></pre>
+</li>
+<li>
+<p>Restart your IDE, as global config files like <code>nx.json</code> are only read once during the program start.</p>
+</li>
+<li>
+<p>Make sure, you don't get this linting error anymore. Optionally, you can also start the linter on the command line (<code>ng lint luggage-feature-checkin</code>).</p>
+</li>
+</ol>
+<h2 id="bonus-configure-a-shared-utility-library-">Bonus: Configure a Shared Utility Library **</h2>
+<ul>
+<li>
+<p>In <code>nx.json</code> Assign some additional tags to your <code>logger-lib</code> making sure it's part of the shared kernel's utility layer</p>
+<p><strong>Hint:</strong> In addition to the preexisting tag <code>shared</code> -- which is needed for the simplified domains -- assign the tag <code>domain:shared</code> as well as the tag <code>type:util</code>.</p>
+</li>
+<li>
+<p>Restart your IDE.</p>
+</li>
+<li>
+<p>Import the <code>LoggerModule</code> into your <code>luggage-feature-checkin.module.ts</code>.</p>
+</li>
+<li>
+<p>Make sure you don't get a linting error for importing the <code>LoggerModule</code>.</p>
+</li>
+</ul>
+
+    </body>
+    </html>

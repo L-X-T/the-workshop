@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Loading Separately Compiled Libraries (Microfrontends)</title>
+        <style>
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="loading-separately-compiled-libraries-microfrontends">Loading Separately Compiled Libraries (Microfrontends)</h1>
+<ul>
+<li><a href="#loading-separately-compiled-libraries-microfrontends">Loading Separately Compiled Libraries (Microfrontends)</a>
+<ul>
+<li><a href="#creating-a-lib">Creating a Lib</a></li>
+<li><a href="#build-and-deploy-the-lib">Build and &quot;Deploy&quot; the Lib</a></li>
+<li><a href="#load-separately-compiled-library">Load Separately Compiled Library</a></li>
+</ul>
+</li>
+</ul>
+<p>In this Lab, you'll load a separately compiled library which acts as a microfrontend.</p>
+<h2 id="creating-a-lib">Creating a Lib</h2>
+<ol>
+<li>
+<p>Generate a new <code>bonus-miles</code> lib:</p>
+<pre><code><code><div>ng g lib bonus-miles --buildable
+</div></code></code></pre>
+<p><strong>Remarks:</strong> The <code>buildable</code> switch makes sure the library can be compiled separately.</p>
+</li>
+<li>
+<p>Generate a <code>BonusMilesComponent</code> for this lib:</p>
+<pre><code><code><div>ng g component bonus-miles --project bonus-miles
+</div></code></code></pre>
+</li>
+<li>
+<p>Open the file <code>bonus-miles.component.html</code> and add some content:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">h1</span>&gt;</span>Your Bonus Miles<span class="hljs-tag">&lt;/<span class="hljs-name">h1</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>
+    You have 17,388 bonus miles.
+<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+</div></code></pre>
+</li>
+<li>
+<p>Open the file <code>bonus-miles.module.ts</code> and add a child route for your component:</p>
+<pre><code class="language-typescript"><div>[...]
+<span class="hljs-comment">// Add this line:</span>
+<span class="hljs-keyword">import</span> { RouterModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/router'</span>;
+
+<span class="hljs-meta">@NgModule</span>({
+    imports: [
+        CommonModule,
+        <span class="hljs-comment">// Add this line;</span>
+        RouterModule.forChild([
+            { path: <span class="hljs-string">''</span>, component: BonusMilesComponent }
+        ])
+    ],
+    declarations: [
+        BonusMilesComponent
+    ]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> BonusMilesModule {}
+</div></code></pre>
+<p><strong>Hint:</strong> You might need to import the <code>RouterModule</code> manually.</p>
+</li>
+</ol>
+<h2 id="build-and-deploy-the-lib">Build and &quot;Deploy&quot; the Lib</h2>
+<ol>
+<li>
+<p>Build your lib:</p>
+<pre><code><code><div>ng build bonus-miles
+</div></code></code></pre>
+<p>If you use the <code>--prod</code> switch, make sure that your <code>tsconfig.lib.prod.json</code> does not disable ivy. Make sure <code>enableIvy</code> is set to <code>true</code>. You dont't have to use --prod as libraries are always build for production. The only difference is that --prod makes the CLI to use the file <code>tsconfig.lib.prod.json</code>.</p>
+</li>
+<li>
+<p>Simulate a deployment of the library by copying the generated UMD bundle into the <code>flight-app</code>'s <code>assets</code> folder. For this, copy the file</p>
+<pre><code><code><div>dist/libs/bonus-miles/bundles/flight-workspace-bonus-miles.umd.js
+</div></code></code></pre>
+<p>to the folder</p>
+<pre><code><code><div>apps/flight-app/src/assets
+</div></code></code></pre>
+</li>
+</ol>
+<h2 id="load-separately-compiled-library">Load Separately Compiled Library</h2>
+<ol>
+<li>
+<p>Switch to your <code>flight-app</code> and create a file <code>apps\flight-app\src\app\externals-utils.ts</code>.</p>
+</li>
+<li>
+<p>In this file, insert the following code:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">declare</span> <span class="hljs-keyword">const</span> <span class="hljs-built_in">require</span>: <span class="hljs-built_in">any</span>;
+
+<span class="hljs-keyword">const</span> moduleMap = {};
+
+<span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadModule</span>(<span class="hljs-params">umdFileName: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">Promise</span>&lt;<span class="hljs-title">any</span>&gt; </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>&lt;<span class="hljs-built_in">any</span>&gt;<span class="hljs-function">(<span class="hljs-params">(<span class="hljs-params">resolve, reject</span>) =&gt; {
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-params">moduleMap[umdFileName]</span>) {
+            resolve(<span class="hljs-params"><span class="hljs-built_in">window</span></span>);
+            <span class="hljs-keyword">return</span>;
+        }
+
+        <span class="hljs-keyword">const</span> script = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-params">'script'</span>);
+        script.src = umdFileName;
+        
+        script.onerror = reject;
+        
+        script.onload = (<span class="hljs-params"></span>) =&gt; {
+            moduleMap[umdFileName] = <span class="hljs-literal">true</span>;
+            resolve(<span class="hljs-params"><span class="hljs-built_in">window</span></span>); <span class="hljs-comment">// window is the global namespace</span>
+        }
+        
+        <span class="hljs-built_in">document</span>.body.append(<span class="hljs-params">script</span>);
+    }</span>);
+}
+</span></div></code></pre>
+<p>Please note that the <code>loadModule</code> takes the path to an UMD bundle and loads it dynamically by adding a <code>script</code> tag for it.</p>
+<p>After loading our bundle, we should find the <code>BonusMilesModule</code> in <code>window['flight-workspace']['bonus-miles'].BonusMilesModule</code>.</p>
+</li>
+<li>
+<p>To the same file, also add the following function:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initExternals</span>(<span class="hljs-params">production: <span class="hljs-built_in">boolean</span></span>) </span>{
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng = {};
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.core = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/core'</span>);
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.forms = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/forms'</span>);
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.common = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/common'</span>);
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.router = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/router'</span>);
+    (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.platformBrowser = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/platform-browser'</span>);
+
+    <span class="hljs-keyword">if</span> (!production) {
+        (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.platformBrowserDynamic = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/platform-browser-dynamic'</span>);
+        (<span class="hljs-built_in">window</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">any</span>).ng.compiler = <span class="hljs-built_in">require</span>(<span class="hljs-string">'@angular/compiler'</span>);
+    }
+}
+</div></code></pre>
+<p>Please note that <code>initExternals</code> puts the libraries our shell wants to share with <code>bonus-miles</code> into the global namespace.</p>
+</li>
+<li>
+<p>Open your <code>flight-app</code>'s <code>main.ts</code> and add a call for <code>initExternals</code>:</p>
+<pre><code class="language-typescript"><div>initExternals(environment.production);
+</div></code></pre>
+</li>
+<li>
+<p>Open the file <code>app.routes</code> and add a lazy route loading the external UMD bundle with <code>loadModule</code>:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> APP_ROUTES: Routes = [
+[...],
+{
+    path: <span class="hljs-string">'bonus-miles'</span>,
+    loadChildren: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> loadModule(<span class="hljs-string">'./assets/flight-workspace-bonus-miles.umd.js'</span>)
+                          .then(<span class="hljs-function"><span class="hljs-params">g</span> =&gt;</span> g[<span class="hljs-string">'flight-workspace'</span>][<span class="hljs-string">'bonus-miles'</span>].BonusMilesModule)
+},
+<span class="hljs-comment">// This routes MUST be the last one!</span>
+{
+    path: <span class="hljs-string">'**'</span>,
+    redirectTo: <span class="hljs-string">'home'</span>
+}
+];
+</div></code></pre>
+</li>
+<li>
+<p>Open the file <code>sidebar.component.html</code> and add a link for your new route:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">li</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">routerLink</span>=<span class="hljs-string">"bonus-miles"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">i</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"ti-arrow-top-right"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">i</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Miles<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+</div></code></pre>
+</li>
+<li>
+<p>Start your <code>flight-app</code> (<code>npm start</code> or <code>ng serve flight-app -o</code>) and navigate to <code>Miles</code>.</p>
+<p>You should see that your UMD is loaded and the containing component should be activated be the router:</p>
+ <img src="https://i.imgur.com/HOjmnTu.png" width="800"></li>
+</ol>
+
+    </body>
+    </html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Dashboard</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1>Labs: Web Components with Angular</h1>
+<ul>
+<li><a href="#dashboard">Dashboard</a></li>
+<li><a href="#using-angular-elements">Using Angular Elements</a></li>
+<li><a href="#dynamically-adding-a-web-component">Dynamically adding a Web Component</a></li>
+<li><a href="#lazy-loading-web-components">Lazy Loading Web Components</a></li>
+<li><a href="#loading-an-external-web-component">Loading an external Web Component</a>
+<ul>
+<li><a href="#inspecting-the-external-project">Inspecting the external project</a></li>
+<li><a href="#build-the-external-web-component">Build the external web component</a></li>
+<li><a href="#load-the-external-web-component">Load the external web component</a></li>
+</ul>
+</li>
+<li><a href="#bonus-using-externals">Bonus: Using Externals</a></li>
+<li><a href="#bonus-working-with-an-existing-native-web-component">Bonus: Working with an existing (native) web component *</a></li>
+<li><a href="#bonus-implementing-two-way-bindings-for-existing-web-components">Bonus: Implementing Two-Way-Bindings for existing web components **</a></li>
+</ul>
+<h2 id="dashboard">Dashboard</h2>
+<p>In this lab, you will mainly work within the <code>dashboard</code> app in your monorepo. Hence, to start your project, you have to call ```ng serve -o --project dashboard``.</p>
+<h2 id="using-angular-elements">Using Angular Elements</h2>
+<ol>
+<li>
+<p>Have a look to the file <code>dashboard-tile.component.ts</code> and the respective template <code>dashboard-tile.component.html</code>. Find out what it does and that it is just an ordinary Angular component.</p>
+</li>
+<li>
+<p>Now, let's expose this component as a web component using Angular Elements. For this, open the file <code>dashboard-tile.module.ts</code> and add the <code>DashboardTileComponent</code> to the <code>entryComponents</code>.</p>
+</li>
+<li>
+<p>In the module's constructor, wrap your component with Angular Elements and register it as a custom element.</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">const</span> tileElm = createCustomElement(DashboardTileComponent, { injector: <span class="hljs-keyword">this</span>.injector });
+customElements.define(<span class="hljs-string">'dashboard-tile'</span>, tileElm);
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>To test your web component, call it within your <code>home.component.html</code> file:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">dashboard-tile</span> <span class="hljs-attr">a</span>=<span class="hljs-string">"3"</span> <span class="hljs-attr">b</span>=<span class="hljs-string">"4"</span> <span class="hljs-attr">c</span>=<span class="hljs-string">"5"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">dashboard-tile</span>&gt;</span>
+</div></code></pre>
+</li>
+<li>
+<p>Find out that you get an error. The reason is that you are lacking the necessary polyfills.</p>
+</li>
+<li>
+<p>To solve this issue, install polyfills for your browsers. You can leverage the following schematics:</p>
+<pre><code><code><div>ng add ngx-build-plus --project dashboard
+ng g ngx-build-plus:wc-polyfill -f --project dashboard
+</div></code></code></pre>
+</li>
+<li>
+<p>Restart the Angular CLI now. This is necessary because the polyfills are registered with <code>angular.json</code> which is only loaded once during startup.</p>
+</li>
+<li>
+<p>You should now get another error in your browsers's JavaScript console. To solve this one, add the <code>CUSTOM_ELEMENTS_SCHEMA</code> to your <code>AppModule</code>:</p>
+<pre><code class="language-typescript"><div><span class="hljs-meta">@NgModule</span>({
+[...],
+schemas: [
+    CUSTOM_ELEMENTS_SCHEMA
+],
+[...]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> AppModule {
+}
+</div></code></pre>
+<p>The reason for this error is that the Angular Compiler does not know web components (custom elements) hence it throws this error. This schema makes the compiler to ignore everything it is not aware of.</p>
+</li>
+<li>
+<p>Make sure, the solution works now and displays the <code>dashboard-tile</code> web component.</p>
+</li>
+<li>
+<p>Now, let's inspect the changes those Schematics did:</p>
+<ul>
+<li>index.html: At the end, you should find a reference to a polyfill for browsers that DO support Web Components (it's needed because we downlevel to ES5).</li>
+<li>polyfills.ts: At the end, you should find a reference to a polyfill loader for browsers not supporting Web Components.</li>
+</ul>
+</li>
+</ol>
+<h2 id="dynamically-adding-a-web-component">Dynamically adding a Web Component</h2>
+<ol>
+<li>
+<p>In your <code>dashboard-page.component.ts</code>, implement the open TODOs (see comments) to dynamically add a dashboard tile to your dashboard.</p>
+ <details>
+ <summary>Show Hint</summary>
+ <p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">const</span> tile = <span class="hljs-built_in">document</span>.createElement(elementName);
+
+tile.setAttribute(<span class="hljs-string">'class'</span>, <span class="hljs-string">'col-lg-4 col-md-6 col-sm-12'</span>);
+tile.setAttribute(<span class="hljs-string">'a'</span>, <span class="hljs-string">''</span> + data[<span class="hljs-number">0</span>]);
+tile.setAttribute(<span class="hljs-string">'b'</span>, <span class="hljs-string">''</span> + data[<span class="hljs-number">1</span>]);
+tile.setAttribute(<span class="hljs-string">'c'</span>, <span class="hljs-string">''</span> + data[<span class="hljs-number">2</span>]);
+
+content.appendChild(tile);
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Test your application. Move to the Dashboard in the app and press <code>Add Tile</code>. You should now see a dynamically added tile. We will take care about the other buttons here in the next exercises.</p>
+</li>
+</ol>
+<!-- TODO: Add Image -->
+<h2 id="lazy-loading-web-components">Lazy Loading Web Components</h2>
+<ol>
+<li>
+<p>Open the file <code>lazy-dashboard-tile.component.ts</code> and have a look to its component and its template. Find out that it's another ordinary Angular Component.</p>
+</li>
+<li>
+<p>In your <code>angular.json</code>, scroll down to the element <code>projects/dashboard/architect/build/options</code>. Assure yourself that the following entry exists:</p>
+<pre><code class="language-json"><div><span class="hljs-string">"lazyModules"</span>: [
+    <span class="hljs-string">"[...]/dashboard/src/app/lazy-dashboard-tile/lazy-dashboard-tile.module"</span>
+],
+</div></code></pre>
+<p><code>[...]</code> is your path prefix (<code>projects</code> in CLI workspaces or <code>apps</code> in NX workspaces).</p>
+</li>
+<li>
+<p>Restart the Angular CLI's development web server.</p>
+</li>
+<li>
+<p>At the command line, you should now see that the CLI splits off a bundle for this module.</p>
+</li>
+<li>
+<p>Open the file <code>lazy-dashboard-tile.service.ts</code>. Its <code>load</code> method already contains some low level API calls to load the lazy chunk and instantiate the included <code>LazyDashboardTileModule</code>. Have a look at it.</p>
+</li>
+<li>
+<p>Switch back to the file <code>dashboard-page.component.ts</code> and find out that its <code>addLazy</code> method already calls the load method we've looked at before.</p>
+</li>
+<li>
+<p>Now, let's try this out. Open your application, move to the Dashboard and click the button <code>Add Lazy</code>.</p>
+</li>
+</ol>
+<!-- TODO: Add Image -->
+<ol start="8">
+<li>To assure yourself that the module is lazy loaded, refresh the page, open Chrome's dev tools and move to the network page. Then, press <code>Add Lazy</code> and see that the chunk is just loaded on demand.</li>
+</ol>
+<!-- TODO: Add Image -->
+<h2 id="loading-an-external-web-component">Loading an external Web Component</h2>
+<h3 id="inspecting-the-external-project">Inspecting the external project</h3>
+<p>In this part of the exercise, we are using the <code>external</code> project.</p>
+<ol>
+<li>
+<p>Inspect the <code>external</code> project in your workspace.</p>
+</li>
+<li>
+<p>Have a look to the <code>external-dashboard-tile.component.ts</code> file and its template. One more time, it's just an ordinary Angular component.</p>
+</li>
+<li>
+<p>Have a look to the <code>app.module.ts</code> file and find out that defines a <code>ngDoBootstrap</code> for wrapping and registering the web component.</p>
+<p>NOTE: This is needed because this application is started without an bootstrap component (see empty <code>bootstrap</code> array)</p>
+</li>
+<li>
+<p>Open the <code>index.html</code> file and find out that the discussed polyfills for web components are referenced at the end.</p>
+</li>
+<li>
+<p>Also, have a look to the <code>index.html</code> and find out that it references a polyfill and just calls the web component (and not a traditional Angular component, as usual).</p>
+</li>
+<li>
+<p>Start the external project to test it:</p>
+<pre><code><code><div>ng serve --project external -o
+</div></code></code></pre>
+ <!-- TODO: Add Image -->
+</li>
+</ol>
+<h3 id="build-the-external-web-component">Build the external web component</h3>
+<p>In this part of the exercise, we are using the <code>external</code> project one more time.</p>
+<ol>
+<li>
+<p>Now, let's build the <code>external</code> project. To make sure to get just one bundle, use the option <code>--single-bundle</code> provided by the community project <a href="https://www.npmjs.com/package/ngx-build-plus">ngx-build-plus</a></p>
+<pre><code><code><div>ng build --prod --single-bundle --output-hashing none --project external
+</div></code></code></pre>
+<p>HINT: Preventing <code>output-hashing</code> makes writing code for dynamically loading the bundles easier.</p>
+<p>As you see here, this bundle is rather big for such a simple web component. The upcoming Ivy compiler will help here a lot.</p>
+</li>
+<li>
+<p>Copy the <code>external</code> project's bundle over to your <code>dashboard</code>'s <code>assets</code> folder. Use the following prepared npm script:</p>
+<pre><code><code><div>npm run copy:ce
+</div></code></code></pre>
+</li>
+</ol>
+<h3 id="load-the-external-web-component">Load the external web component</h3>
+<p>In this part of the exercise, we are switching back to the <code>dashboard</code> project.</p>
+<ol>
+<li>
+<p>Open the file <code>external-dashboard-tile.service.ts</code> and implement the missing parts (see TODO comments) in the <code>load</code> method.</p>
+</li>
+<li>
+<p>Have a look to your <code>dashboard-page.component.ts</code>. See that your modified <code>load</code> method is called by <code>addExternal</code>.</p>
+<pre><code class="language-javascript"><div><span class="hljs-keyword">const</span> script = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">'script'</span>);
+script.src = <span class="hljs-string">'assets/external-dashboard-tile.bundle.js'</span>;
+<span class="hljs-built_in">document</span>.body.appendChild(script);
+</div></code></pre>
+</li>
+<li>
+<p>Start your application, switch to the dashboard and press <code>Add External</code>. Your external component should now be loaded and displayed.</p>
+</li>
+<li>
+<p>Once again, reload the app and use the network tab in Chrome's dev tools to assure yourself that the bundle is loaded just on demand.</p>
+</li>
+</ol>
+<h2 id="bonus-using-externals">Bonus: Using Externals</h2>
+<p>Webpack, which is used by the CLI, allows to specify dependencies as externals. This means they are not bundled alongside your application. Instead, the emitted code assumes these dependencies to be reachable via the global namespace (= <code>window</code> object in browser based JavaScript).</p>
+<p>To load your dependencies into the global namespace, one can just reference their UMD-bundles, e. g. using the <code>scripts</code> sction in <code>angular.json</code>.</p>
+<ol>
+<li>
+<p>Use <code>ngx-build-plus</code> to generate externals support for your <code>external</code> project:</p>
+<pre><code><code><div>ng g ngx-build-plus:externals --project external
+</div></code></code></pre>
+</li>
+<li>
+<p>Inspect the generated and modified files:</p>
+<ul>
+<li><code>webpack.externals.js</code>: Here you find mappings between dependencies and variables in the global namespace.</li>
+<li><code>angular.json</code>: In the <code>scripts</code> section, some UMD bundles are referenced now</li>
+<li><code>package.json</code>: Here you find a new script called <code>build:external:externals</code>.</li>
+</ul>
+</li>
+<li>
+<p>Run the npm script <code>build:external:externals</code>.</p>
+</li>
+<li>
+<p>Assure yourself that the generated <code>main</code> bundle is really tiny. The reason is that it does not contain dependencies as they are external and expected to be within the global namespace.</p>
+<p>However, you should also see a bigger <code>scripts</code> bundle with all the externals. This bundle is rather big as UMD is not treeshakable. This shows that using externals only makes sense if you want to share dependencies between several seperately compiled applications.</p>
+</li>
+</ol>
+<h2 id="bonus-working-with-an-existing-native-web-component-">Bonus: Working with an existing (native) web component *</h2>
+<ol>
+<li>
+<p>Open the file <code>custom-checkbox.ts</code> and have a look to the implementation.</p>
+</li>
+<li>
+<p>Open the file <code>home.component.html</code> and remove the comments so that the <code>custom-checkox</code> component is called.</p>
+</li>
+<li>
+<p>Test your application with Chrome. Find out that there is a error (F12). The reason is, that Angular does not know the web component.</p>
+</li>
+<li>
+<p>Fix this issue, by adding the CUSTOM_ELEMENTS_SCHEMA in the <code>app.module.ts</code>.</p>
+</li>
+<li>
+<p>Test your application again and make sure it works now.</p>
+</li>
+</ol>
+<h2 id="bonus-implementing-two-way-bindings-for-existing-web-components-">Bonus: Implementing Two-Way-Bindings for existing web components **</h2>
+<p>To use our <code>custom-checkbox</code> component with two way bindings, we need to provide a directive that exposes a <code>checkedChange</code> event. This is necessary, because Angular needs an event with the same name as the property in question and the suffix <code>Change</code>.</p>
+<ol>
+<li>
+<p>Assure yourself that the directive has a selector <code>custom-checkbox</code> which assigns the directive to all instances of our custom element.</p>
+</li>
+<li>
+<p>Add a <code>checkedChange</code> event and a host listener for the existing changed event. Let the latter one trigger <code>checkedChange</code>.</p>
+ <details>
+ <summary>Show Hint</summary>
+ <p>
+<pre><code class="language-typescript"><div><span class="hljs-meta">@Output</span>() checkedChange = <span class="hljs-keyword">new</span> EventEmitter&lt;<span class="hljs-built_in">boolean</span>&gt;();
+
+<span class="hljs-meta">@HostListener</span>(<span class="hljs-string">'changed'</span>, [<span class="hljs-string">'$event'</span>])
+changed($event) {
+    <span class="hljs-keyword">this</span>.checkedChange.next($event.detail);
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Have a look to the file <code>custom-checkbox.module.ts</code> and make sure  that it declares and exports the directive and that it registers the web component.</p>
+</li>
+<li>
+<p>Open the file <code>home.component.html</code> use two way binding for your checkbox (<code>... [(checked)]=&quot;expertMode&quot; ...</code>).</p>
+</li>
+<li>
+<p>Test your solution.</p>
+</li>
+</ol>
+
+    </body>
+    </html>

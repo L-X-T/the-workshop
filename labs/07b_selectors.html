@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Selectors</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="selectors">Selectors</h1>
+<h2 id="adding-a-first-selector">Adding a first selector</h2>
+<p>In this part of the lab, you'll add a selector that queries all the flights that are not on a defined negative list.</p>
+<ol>
+<li>
+<p>Open the file <code>flight-booking.reducer.ts</code> and add a property <code>negativeList</code> to your <code>State</code>:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> State {
+    flights: Flight[];
+    negativeList: <span class="hljs-built_in">number</span>[]
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> initialState: State = {
+    flights: [],
+    negativeList: [<span class="hljs-number">3</span>]
+};
+</div></code></pre>
+<p>For the sake of simplicity, this example defines a default value for the negative list to filter the flight with the id 3.</p>
+</li>
+<li>
+<p>In your <code>+state</code> folder, create a file <code>flight-booking.selectors.ts</code> and enter the following lines. If it already exists, update it as follows:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">import</span> { createSelector } <span class="hljs-keyword">from</span> <span class="hljs-string">"@ngrx/store"</span>;
+<span class="hljs-keyword">import</span> { FlightBookingAppState } <span class="hljs-keyword">from</span> <span class="hljs-string">"./flight-booking.reducer"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> selectFlights = <span class="hljs-function">(<span class="hljs-params">s: FlightBookingAppState</span>) =&gt;</span> s.flightBooking.flights;
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> negativeList = <span class="hljs-function">(<span class="hljs-params">s: FlightBookingAppState</span>) =&gt;</span> s.flightBooking.negativeList;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> selectedFilteredFlights = createSelector(
+    selectFlights,
+    negativeList,
+    <span class="hljs-function">(<span class="hljs-params">flights, negativeList</span>) =&gt;</span> flights.filter(<span class="hljs-function"><span class="hljs-params">f</span> =&gt;</span> !negativeList.includes(f.id))
+);
+</div></code></pre>
+</li>
+<li>
+<p>In your <code>flight-search.component.ts</code>, use the selector when fetching data from the store:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">this</span>.flights$ = <span class="hljs-keyword">this</span>.store.select(selectedFilteredFlights);
+</div></code></pre>
+</li>
+<li>
+<p>Test your application.</p>
+</li>
+</ol>
+<h2 id="bonus-using-feature-selectors-">Bonus: Using feature selectors *</h2>
+<p>To get rid of your FlightBookingAppState type, you can use a feature selector pointing to the branch of your feature:</p>
+<pre><code class="language-TypeScript"><div><span class="hljs-comment">// Create feature selector</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> selectFlightBooking = createFeatureSelector&lt;State&gt;(<span class="hljs-string">'flightBooking'</span>);
+
+<span class="hljs-comment">// Use feature selector to get data from feature branch</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> selectFlights = createSelector(selectFlightBooking, <span class="hljs-function"><span class="hljs-params">s</span> =&gt;</span> s.flights);
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> negativeList = createSelector(selectFlightBooking, <span class="hljs-function"><span class="hljs-params">s</span> =&gt;</span> s.negativeList);
+
+[...]
+</div></code></pre>
+<h2 id="bonus-using-parameterized-selectors-">Bonus: Using parameterized selectors *</h2>
+<p>You can pass a property object to a selector when calling it. This object is assigned to a further parameter in your selectors projection function.</p>
+<ol>
+<li>
+<p>In your <code>flight-booking.selectors.ts</code> file, add the following selector:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> selectFlightsWithProps = createSelector(
+    <span class="hljs-function">(<span class="hljs-params">a: FlightBookingAppState</span>) =&gt;</span> a.flightBooking.flights,
+    <span class="hljs-function">(<span class="hljs-params">flights, props</span>) =&gt;</span> flights.filter(<span class="hljs-function"><span class="hljs-params">f</span> =&gt;</span> !props.blackList.includes(f.id))
+);
+</div></code></pre>
+<p>Please note that the projector get an additional <code>props</code> parameter. It points to a dynamic object.</p>
+</li>
+<li>
+<p>Open the file <code>flight-search.component.ts</code> and fetch data with this selector:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">this</span>.flights$ = <span class="hljs-keyword">this</span>.store.select(selectFlightsWithProps, { blackList: [<span class="hljs-number">3</span>]});
+</div></code></pre>
+</li>
+<li>
+<p>Test your solution.</p>
+</li>
+</ol>
+
+    </body>
+    </html>

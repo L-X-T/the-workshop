@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Manage state with @ngrx/store</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="manage-state-with-ngrxstore">Manage state with @ngrx/store</h1>
+<ul>
+<li><a href="#manage-state-with-ngrxstore">Manage state with @ngrx/store</a>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#setup-the-store">Setup the store</a></li>
+<li><a href="#setup-state-management-for-a-feature-module">Setup State Management for a Feature Module</a></li>
+<li><a href="#update-a-flight">Update a Flight</a></li>
+<li><a href="#bonus-connecting-the-router-to-the-store-">Bonus: Connecting the Router to the Store **</a></li>
+<li><a href="#bonus-using-mutables-with-ngrx-etc-">Bonus: Using Mutables with ngrx-etc *</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<p><strong>If</strong> you don't have installed the Angular CLI do it now:</p>
+<pre><code><code><div>npm i -g @angular/cli
+</div></code></code></pre>
+<p><strong>If and only if</strong> you don't have installed the CLI and the last command didn't work (e. g. b/c of your firewall) you can use the project-local CLI installation here. In this case, you have to execute the CLI with <code>npm run</code>. The next snipped shows this by requesting the CLI's version:</p>
+<pre><code><code><div>npm run ng -- -v
+</div></code></code></pre>
+<p>Please note, that you need those two dashes to tell npm that the parameters are not indented for npm but ng.</p>
+<p>If you have a newer version of npm, you could also use <code>npx</code>:</p>
+<pre><code><code><div>npx ng -v
+</div></code></code></pre>
+<h2 id="setup-the-store">Setup the store</h2>
+<ol>
+<li>
+<p>Open your <code>package.json</code> and find out, that some libraries from the <code>@ngrx/*</code> scope have been installed. One of them is <code>@ngrx/schematics</code> which extends the CLI by additional commands we are using in the next steps to generate boilerplate code.</p>
+</li>
+<li>
+<p>To setup the <code>StoreModule</code> and all the needed imports, switch into the folder <code>flight-app\src\app</code> and run the following command.</p>
+<p><code>ng generate @ngrx/schematics:store AppState --root --statePath=+state --module=app.module.ts --project=flight-app</code></p>
+</li>
+<li>
+<p>Open the new <code>+state</code> folder and its <code>index.ts</code> file.</p>
+</li>
+<li>
+<p>Open the <code>app.module.ts</code> file and inspect the current changes. You should find some additional imported modules.</p>
+<p>Check whether all <code>import</code> statements in this file work. If not, correct them (sometimes the generated code has some minor issues).</p>
+</li>
+<li>
+<p>Also import the <code>EffectsModule</code> into the <code>AppModule</code>. Even though we will use it only later, we have to import it now to make the generated code run.</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">import</span> { EffectsModule } <span class="hljs-keyword">from</span> <span class="hljs-string">'@ngrx/effects'</span>;
+
+[...]
+
+imports: [
+    [...],
+    EffectsModule.forRoot([])
+];
+</div></code></pre>
+</li>
+</ol>
+<h2 id="setup-state-management-for-a-feature-module">Setup State Management for a Feature Module</h2>
+<ol>
+<li>
+<p>To setup the <code>StoreModule</code> for a feature module, switch into the folder <code>flight-app\src\app</code> and use the following command:</p>
+<p><code>ng generate @ngrx/schematics:feature flight-booking/+state/flight-booking --module=flight-booking/flight-booking.module.ts --creators</code></p>
+<p>If you are asked, whether to wire up success and failure functions, answer with &quot;no&quot;. We'll do this by hand in this workshop.</p>
+<p>Open the new <code>+state</code> folder and inspect the files.</p>
+<p>Inspect all of them and take a look at the <code>flight-booking.module.ts</code> where everything is imported.
+See that the <code>.forFeature</code> method is called here.</p>
+</li>
+<li>
+<p>Open the file <code>flight-booking.effects.ts</code> and remove the body of the class <code>FlightBookingEffects</code> as well as all unnecessary imports. Will will come back to this file in a later exercise.</p>
+<pre><code class="language-TypeScript"><div><span class="hljs-keyword">import</span> {Injectable} <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/core'</span>;
+<span class="hljs-comment">// No other imports, for now</span>
+
+<span class="hljs-meta">@Injectable</span>()
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> FlightBookingEffects {
+  <span class="hljs-comment">// No body, for now</span>
+}
+</div></code></pre>
+</li>
+<li>
+<p>Open the file <code>flights-booking.reducer.ts</code>. Extend the interface <code>State</code> by a property <code>flights</code> with the type <code>Flight[]</code>.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> State {
+  flights: Flight[]
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Below, define an empty array as the initial state for the new property <code>initialState</code>.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> initialState: State = {
+  flights: []
+};
+
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>In the same file, insert an interface <code>FlightBookingAppState</code> that represents the root nodes view to our State:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> FlightBookingAppState {
+  flightBooking: State
+}
+</div></code></pre>
+</li>
+<li>
+<p>Open the file <code>flight-booking.actions.ts</code> and setup a <code>flightsLoaded</code> action creator.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+ You can replace the whole file with the following content:
+<pre><code class="language-typescript"><div>[...]
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> flightsLoaded = createAction(
+  <span class="hljs-string">'[FlightBooking] FlightsLoaded'</span>,
+  props&lt;{flights: Flight[]}&gt;()
+);
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the file <code>flight-booking.reducer.ts</code> and extend the reducer function so that it handles the <code>flightsLoaded</code> action.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> flightBookingReducer = createReducer(
+  initialState,
+
+  on(flightsLoaded, <span class="hljs-function">(<span class="hljs-params">state, action</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> flights = action.flights;
+    <span class="hljs-keyword">return</span> { ...state, flights };
+  })
+)
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the file <code>flight-search.component.ts</code>. Inject the Store into the constructor. Introduce a property <code>flights$</code> (<code>Observable&lt;Flight[]&gt;</code>) which points to the flights in the store.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> FlightSearchComponent <span class="hljs-keyword">implements</span> OnInit {
+
+  [...]
+
+  flights$: Observable&lt;Flight[]&gt;;
+
+  <span class="hljs-keyword">constructor</span>(<span class="hljs-params">
+    [...]
+    <span class="hljs-keyword">private</span> store: Store&lt;FlightBookingAppState&gt;
+  </span>) { }
+
+  ngOnInit() {
+    <span class="hljs-keyword">this</span>.flights$ = <span class="hljs-keyword">this</span>.store.select(<span class="hljs-function"><span class="hljs-params">s</span> =&gt;</span> s.flightBooking.flights);
+  }
+
+  [...]
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Modify the component's <code>search</code> method so that the loaded flights are send to the store. For this, use the <code>FlightService</code>'s <code>find</code> method instead of the <code>load</code> method and dispatch a <code>flightsLoaded</code> action.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>search(): <span class="hljs-built_in">void</span> {
+  <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.from || !<span class="hljs-keyword">this</span>.to) <span class="hljs-keyword">return</span>;
+
+  <span class="hljs-comment">// old:</span>
+  <span class="hljs-comment">// this.flightService.load(...)</span>
+
+  <span class="hljs-comment">// new:</span>
+  <span class="hljs-keyword">this</span>.flightService
+      .find(<span class="hljs-keyword">this</span>.from, <span class="hljs-keyword">this</span>.to, <span class="hljs-keyword">this</span>.urgent)
+      .subscribe(
+        <span class="hljs-function"><span class="hljs-params">flights</span> =&gt;</span> { 
+          <span class="hljs-keyword">this</span>.store.dispatch(flightsLoaded({flights}));
+        },
+        <span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> {
+          <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'error'</span>, error);
+        } 
+      );
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the component's template, <code>flight-search.component.html</code>, and use the observable <code>flights$</code> together with the <code>async</code> pipe instead of the array <code>flights</code>.</p>
+<details>
+<summary>Show code</summary>
+<p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">div</span> *<span class="hljs-attr">ngFor</span>=<span class="hljs-string">"let f of flights$ | async"</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"col-xs-12 col-sm-6 col-md-4 col-lg-3"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">flight-card</span> [<span class="hljs-attr">...</span>]&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">flight-card</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</div></code></pre>
+</p>
+</details>
+</li>
+<li>
+<p>Test your solution</p>
+</li>
+<li>
+<p>If not already installed, install the Chrome plugin <code>Redux DevTools</code> and use it to trace the dispatched actions.</p>
+<p>To install it, use Chrome to navigate to <a href="https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=de">this page</a>.</p>
+</li>
+</ol>
+<h2 id="update-a-flight">Update a Flight</h2>
+<p>In this exercise you will write an action for updating a flight. You will use it to delay the first flight by 15 minutes.</p>
+<p>This exercise shows that working with immutables in JavaScript is not always as straight we would like it to be.</p>
+<ol>
+<li>
+<p>Open the file <code>flight-booking.actions.ts</code> and add a <code>updateFlight</code> action creator for updating a changed flight in the store.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>[...]
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> updateFlight = createAction(
+  <span class="hljs-string">'[FlightBooking] Update Flight'</span>,
+  props&lt;{flight: Flight}&gt;()
+);
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the file <code>flight-booking.reducer.ts</code> and update the reducer to handle the <code>FlightUpdateAction</code>.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>[...]
+<span class="hljs-keyword">const</span> flightBookingReducer = createReducer(
+  initialState,
+
+  on(flightsLoaded, <span class="hljs-function">(<span class="hljs-params">state, action</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> flights = action.flights;
+    <span class="hljs-keyword">return</span> { ...state, flights };
+  }),
+
+  <span class="hljs-comment">// New:</span>
+  on(updateFlight, <span class="hljs-function">(<span class="hljs-params">state, action</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> flight = action.flight;
+    <span class="hljs-keyword">const</span> flights = state.flights.map(<span class="hljs-function"><span class="hljs-params">f</span> =&gt;</span> f.id === flight.id? flight: f);
+    <span class="hljs-keyword">return</span> { ...state, flights };
+  })
+);
+[...]
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the <code>flight-search.component.ts</code>. Within the <code>delay</code> method, dispatch a <code>FlightUpdateAction</code> that delays the first found flight for 15 minutes. As the flight is immutable, you have to create a new one.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>delay(): <span class="hljs-built_in">void</span> {
+  
+  <span class="hljs-keyword">this</span>.flights$.pipe(take(<span class="hljs-number">1</span>)).subscribe(<span class="hljs-function"><span class="hljs-params">flights</span> =&gt;</span> {
+    <span class="hljs-keyword">let</span> flight = flights[<span class="hljs-number">0</span>];
+
+    <span class="hljs-keyword">let</span> oldDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(flight.date);
+    <span class="hljs-keyword">let</span> newDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(oldDate.getTime() + <span class="hljs-number">15</span> * <span class="hljs-number">60</span> * <span class="hljs-number">1000</span>);
+    <span class="hljs-keyword">let</span> newFlight = { ...flight, date: newDate.toISOString() };
+    
+    <span class="hljs-keyword">this</span>.store.dispatch(updateFlight({flight: newFlight}));
+  });
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the <code>flight-search.component.html</code> file and make sure that the the <code>Delay</code> button uses the <code>flights$</code> observable instead of the flights array. A very simple way to accomplish this is using the <code>async</code> pipe:</p>
+<pre><code class="language-html"><div><span class="hljs-tag">&lt;<span class="hljs-name">button</span> *<span class="hljs-attr">ngIf</span>=<span class="hljs-string">"(flights$ | async).length &gt; 0"</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"btn btn-default"</span>
+  (<span class="hljs-attr">click</span>)=<span class="hljs-string">"delay()"</span>&gt;</span>
+  Delay 1st Flight
+<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span>
+</div></code></pre>
+<p>If there is time, your instructor will discuss alternatives for this with you.</p>
+</li>
+<li>
+<p>Test your solution.</p>
+</li>
+</ol>
+<h2 id="bonus-connecting-the-router-to-the-store-">Bonus: Connecting the Router to the Store **</h2>
+<p>The <code>StoreRouterConnectingModule</code> helps to sync your router with the store. This exercise shows how to use it.</p>
+<ol>
+<li>
+<p>Open your file <code>flight-app/src/app/+state/index.ts</code>, import the <code>routerReducer</code> from <code>@ngrx/router-store</code> and register it:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">import</span> { routerReducer } <span class="hljs-keyword">from</span> <span class="hljs-string">'@ngrx/router-store'</span>;
+[...]
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> reducers: ActionReducerMap&lt;State&gt; = {
+  router: routerReducer
+};
+</div></code></pre>
+</li>
+<li>
+<p>In your <code>app.module</code>, configure the <code>StoreRouterConnectingModule</code> as shown below:</p>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">import</span> { RouterState } <span class="hljs-keyword">from</span> <span class="hljs-string">'@ngrx/router-store'</span>;
+[...]
+
+<span class="hljs-meta">@NgModule</span>({
+  imports: [
+    [...]
+    StoreRouterConnectingModule.forRoot({stateKey: <span class="hljs-string">'router'</span>, routerState: RouterState.Minimal })
+  ],
+  [...]
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> AppModule {
+}
+</div></code></pre>
+</li>
+<li>
+<p>Start your application and navigate between the menu points. Open the Redux Devtools and replay all actions. Your should see, that the visited routes are replayed too.</p>
+</li>
+</ol>
+<h2 id="bonus-using-mutables-with-ngrx-etc-">Bonus: Using Mutables with ngrx-etc *</h2>
+<p>The project ngrx-etc uses the library immer to allow mutating the state. At least, it looks like this. However, your mutations are only recorded and replayed in an immutable way. As a result, you can write your code as you are used to and although you get the benefits of immutables.</p>
+<p>You can quickly try this out:</p>
+<ol>
+<li>Install ngrx-etc: <code>npm i ngrx-etc --save</code></li>
+<li>Lookup its readme: <a href="https://www.npmjs.com/package/ngrx-etc">https://www.npmjs.com/package/ngrx-etc</a></li>
+<li>Update your reducer so that it uses <code>mutableOn</code> instead of <code>on</code> as shown in the readme file</li>
+</ol>
+
+    </body>
+    </html>

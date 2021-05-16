@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Angular Performance: Workshop</title>
+        <style>
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="angular-performance-workshop">Angular Performance: Workshop</h1>
+<ul>
+<li><a href="#angular-performance-workshop">Angular Performance: Workshop</a>
+<ul>
+<li><a href="#lazy-loading">Lazy Loading</a>
+<ul>
+<li><a href="#implementing-lazy-loading-for-a-feature-module">Implementing Lazy Loading for a feature module</a></li>
+<li><a href="#implementing-preloading">Implementing Preloading</a></li>
+</ul>
+</li>
+<li><a href="#improving-data-binding-performance-with-onpush">Improving Data Binding Performance with OnPush</a></li>
+<li><a href="#improving-startup-performance-with-prod-mode">Improving Startup Performance with Prod-Mode</a></li>
+<li><a href="#bonus-inspecting-bundles-with-webpack-bundle-analyzer">Bonus: Inspecting Bundles with webpack-bundle-analyzer</a>
+<ul>
+<li><a href="#bonus-implementing-a-custom-preloading-strategy-">Bonus: Implementing a Custom Preloading Strategy **</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="lazy-loading">Lazy Loading</h2>
+<h3 id="implementing-lazy-loading-for-a-feature-module">Implementing Lazy Loading for a feature module</h3>
+<p>Implement lazy loading for the <code>FlightBookingModule</code> in your <code>app.routes.ts</code>.
+Keep in mind that lazy loading only works if the module in question isn't referenced directly but only with a string in the router configuration.</p>
+<ol>
+<li>
+<p>Open the file <code>app.module.ts</code> and remove the import for the <code>FlightBookingModule</code>.</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+<span class="hljs-meta">@NgModule</span>({
+    imports: [
+        [...]
+        <span class="hljs-comment">// FlightBookingModule, </span>
+        <span class="hljs-comment">// ^^ Removed b/c this would prevent lazy loading</span>
+        [...]
+    ],
+    [...]        
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> AppModule { }
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Since Angular 8, we are using EcmaScript inline imports for lazy loading. To make them work, you have to adjust your <code>tsconfig.app.json</code> (in <code>flight-app</code>):</p>
+<ul>
+<li>Here, make sure, <code>module</code> is set to <code>esnext</code>.</li>
+</ul>
+</li>
+<li>
+<p>Open the file <code>app.routes.ts</code> and introduce a route with the path <code>flight-booking</code>.
+It should point to the <code>FlightBookingModule</code> using <code>loadChildren</code>:</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div>[...]
+{
+    path: <span class="hljs-string">'flight-booking'</span>,
+    loadChildren: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">'./flight-booking/flight-booking.module'</span>).then(<span class="hljs-function"><span class="hljs-params">m</span> =&gt;</span> m.FlightBookingModule) 
+},
+{
+    <span class="hljs-comment">// This route needs to be the last one!</span>
+    path: <span class="hljs-string">'**'</span>,
+    [...]
+}
+[...]
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the file <code>flight-booking.routes.ts</code> and change the path for the first route to an empty string (<code>path: ''</code>) to make this route the default route that is activated after lazy loading the module.</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+<span class="hljs-keyword">const</span> FLIGHT_BOOKING_ROUTES: Routes = [
+{
+    path: <span class="hljs-string">''</span>,
+    component: FlightBookingComponent,
+    [...],
+    children: [
+        [...]
+    ]
+}
+];
+[...]
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>In the file <code>flight-booking.routes.ts</code> deactivate your <code>AuthGuard</code> (if you have created one in an exercise before):</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> FLIGHT_BOOKING_ROUTES: Routes = [
+{
+    path: <span class="hljs-string">''</span>,
+    component: FlightBookingComponent,
+    <span class="hljs-comment">// canActivate: [AuthGuard], // &lt;-- Comment this line out</span>
+    children: [
+        [...]
+    ]
+}
+</div></code></pre>
+ </p>
+ </details>
+<p>This is necessary because in the current project there is an issue with lazy loading and shared services. We will deal with it later.</p>
+</li>
+<li>
+<p>Find out that webpack splits off an own chunk for the <code>FlightBookingModule</code> after implementing lazy loading.
+If this works, you will see another chunk at the console (e. g.  <code>flight-booking-flight-booking-module.js</code> depending on the used version of the CLI)</p>
+</li>
+<li>
+<p>Try it out in the browser and use the network tab within the dev tools (F12) to make sure that it is only loaded on demand.
+If it doesn't work, have a look to the console tab within the dev tools.</p>
+</li>
+</ol>
+<h3 id="implementing-preloading">Implementing Preloading</h3>
+<p>In this exercise you will implement Preloading using Angular's <code>PreloadAllModules</code> strategy.</p>
+<ol>
+<li>
+<p>Open the file <code>app.module.ts</code> and register the <code>PreloadAllModules</code> strategy when calling <code>RouterModule.forRoot</code>.</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+RouterModule.forRoot(APP_ROUTES, {
+    preloadingStrategy: PreloadAllModules
+});
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Make sure it works using the network tab within Chrome's dev tools. If it works, the lazy bundles are loaded <strong>after</strong> the app has been initializes. If this is the case, the chunks show up quite late in the water fall diagram.</p>
+</li>
+</ol>
+<h2 id="improving-data-binding-performance-with-onpush">Improving Data Binding Performance with OnPush</h2>
+<ol>
+<li>
+<p>Open the file <code>flight-search.component.ts</code> and discover the <code>FlightSearchComponent</code>.
+Have a look to the method <code>delay</code> which is bound to the button with the label <code>Delay 1st Flight</code>.</p>
+</li>
+<li>
+<p>Open the file <code>flight-card.component.ts</code> and add have a look to the <code>blink</code> method.</p>
+</li>
+<li>
+<p>Move to the file <code>flight-card.component.html</code> and create a data binding for this method at the end:</p>
+<pre><code><code><div>{{ blink() }}
+</div></code></code></pre>
+<p>Please note that binding methods is not a good idea with respect to performance. We do it here just to visualize the change tracker.</p>
+</li>
+<li>
+<p>Open the solution in the browser and search for flights form <code>Hamburg</code> to <code>Graz</code>.</p>
+</li>
+<li>
+<p>Click the button <code>Delay 1st Flight</code> and see that just the first flight gets a new date. But you also see that every component is checked for changes by Angular b/c every component blinks.</p>
+</li>
+<li>
+<p>Open the file <code>flight-card.component.ts</code>. Switch on <code>OnPush</code> for your <code>FlightCard</code>.</p>
+ <details>
+ <summary>Show Code</summary>
+ <p>
+<pre><code class="language-typescript"><div>
+<span class="hljs-keyword">import</span> {ChangeDetectionStrategy} <span class="hljs-keyword">from</span> <span class="hljs-string">'@angular/core'</span>;
+[...]
+<span class="hljs-meta">@Component</span>({
+    selector: <span class="hljs-string">'flight-card'</span>,
+    templateUrl: <span class="hljs-string">'flight-card.component.html'</span>,
+    changeDetection: ChangeDetectionStrategy.OnPush
+})
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> FlightCardComponent {
+    [...]
+}
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>If, and only if, you are <strong>not</strong> using <code>@ngrx/store</code>: Open the <code>flight.service.ts</code> and alter it to update the selected flight's date in an <em>immutable</em> way:</p>
+<details>
+<summary>Show Code</summary>
+<p>
+<pre><code class="language-typescript"><div><span class="hljs-comment">// libs/flight-lib/src/services/flight.service.ts</span>
+
+delay() {
+    <span class="hljs-keyword">const</span> ONE_MINUTE = <span class="hljs-number">1000</span> * <span class="hljs-number">60</span>;
+
+    <span class="hljs-keyword">let</span> oldFlights = <span class="hljs-keyword">this</span>.flights;
+    <span class="hljs-keyword">let</span> oldFlight = oldFlights[<span class="hljs-number">0</span>];
+    <span class="hljs-keyword">let</span> oldDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(oldFlight.date);
+    
+    <span class="hljs-comment">// Mutable</span>
+    <span class="hljs-comment">// oldDate.setTime(oldDate.getTime() + 15 * ONE_MINUTE );</span>
+    <span class="hljs-comment">// oldFlight.date = oldDate.toISOString();</span>
+
+    <span class="hljs-comment">// Immutable</span>
+    <span class="hljs-keyword">let</span> newDate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(oldDate.getTime() + <span class="hljs-number">15</span> * ONE_MINUTE);
+    <span class="hljs-keyword">let</span> newFlight: Flight = { ...oldFlight, date: newDate.toISOString() };
+    <span class="hljs-keyword">let</span> newFlights = [ newFlight, ...oldFlights.slice(<span class="hljs-number">1</span>) ]
+    <span class="hljs-keyword">this</span>.flights = newFlights;
+}
+</div></code></pre>
+</li>
+</ol>
+</p>
+</details>
+<p>You find some information about the object spread operator (e. g. <code>...oldFlight</code>) <a href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-1.html">here</a> (scroll down to Object Spread) and about the array spread operator (e. g. [newFlight, ...oldFlights.slice(1)]) <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator">here</a>.</p>
+<ol start="11">
+<li>Make sure your implementation works. Switch to the browser and search for flights again. Click <code>Delay 1st Flight</code> one more time and find out that Angular is just checking and updating the first flight card.</li>
+</ol>
+<h2 id="improving-startup-performance-with-prod-mode">Improving Startup Performance with Prod-Mode</h2>
+<ol>
+<li>
+<p>Make sure, your solution runs in debug mode (<code>ng serve -o</code>)</p>
+</li>
+<li>
+<p>Open the performance tab in Chrome's dev tools and reload the app. Find out how long bootstrapping takes and create a screenshot.</p>
+<p><strong>Hint:</strong> In order to respect the cache, do it twice and take the screenshot after the 2nd try.</p>
+</li>
+<li>
+<p>Install the simple web server serve:</p>
+<pre><code><code><div>npm install serve -g
+</div></code></code></pre>
+</li>
+<li>
+<p>Switch to the console and move to the root folder of your project. Create a production build:</p>
+<pre><code><code><div>ng build --prod
+</div></code></code></pre>
+</li>
+<li>
+<p>Start live-server for your production build. For this, switch to your project within the <code>dist</code> folder and call serve:</p>
+<pre><code><code><div>serve -s
+</div></code></code></pre>
+</li>
+<li>
+<p>Open the performance tab in Chrome's dev tools and reload the app. Find out how long bootstrapping takes and create a screenshot.</p>
+<p><strong>Hint:</strong> In order to respect the cache, do it twice and take the screenshot after the 2nd try.</p>
+</li>
+<li>
+<p>Compare your screenshot with the performance results.</p>
+</li>
+</ol>
+<h2 id="bonus-inspecting-bundles-with-webpack-bundle-analyzer">Bonus: Inspecting Bundles with webpack-bundle-analyzer</h2>
+<p>Using the webpack-bundle-analyzer one can have a look at a bundle's content. In this exercise you will use this possibility by inspecting your AOT-based and your AOT-less production build.</p>
+<ol>
+<li>
+<p>Install the <code>webpack-bundle-analyzer</code> globally (for the sake of simplicity):</p>
+<pre><code><code><div>npm install -g webpack
+npm install -g webpack-bundle-analyzer
+</div></code></code></pre>
+</li>
+<li>
+<p>Move to the root folder of your project. Create a Production Build without AOT and generate a statistics file for the analyzer using the <code>stats-json</code> flag:</p>
+<pre><code><code><div>ng build --prod --aot=false --build-optimizer=false --stats-json
+</div></code></code></pre>
+</li>
+<li>
+<p>Analyze your bundles:</p>
+<pre><code><code><div>cd dist/flight-app
+webpack-bundle-analyzer stats.json
+</div></code></code></pre>
+<p>The name of <code>stats.json</code> can be slightly different on your machine, e. g. <code>stats-es5.json</code> or <code>stats-es2015.json</code>.</p>
+</li>
+<li>
+<p>Take a screen shot to document this.</p>
+</li>
+<li>
+<p>Move to the root folder of your project. Create a production build using AOT:</p>
+<pre><code><code><div>ng build --prod --stats-json
+</div></code></code></pre>
+</li>
+<li>
+<p>Analyze these bundles too and compare it to the former bundles:</p>
+<pre><code><code><div>cd dist/flight-app
+webpack-bundle-analyzer stats.json
+</div></code></code></pre>
+</li>
+</ol>
+<h3 id="bonus-implementing-a-custom-preloading-strategy-">Bonus: Implementing a Custom Preloading Strategy **</h3>
+<ol>
+<li>
+<p><a href="https://softwarearchitekt.at/post/2016/10/02/optimizing-performance-with-preloading-and-the-new-angular-router.aspx">Here</a> you find some information about creating a custom preloading strategy. Have a look at it.</p>
+</li>
+<li>
+<p>Create a custom preloading strategy that only preloads modules that have been marked with the <code>data</code> attribute in the router configuration.</p>
+</li>
+<li>
+<p>Configure the system to make use of it and test it.</p>
+</li>
+</ol>
+
+    </body>
+    </html>

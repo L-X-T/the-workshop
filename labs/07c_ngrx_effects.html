@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Managing side effects with @ngrx/effects</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-light">
+        <h1 id="managing-side-effects-with-ngrxeffects">Managing side effects with @ngrx/effects</h1>
+<p>In this exercise you will create an effect for loading flights.</p>
+<ol>
+<li>
+<p>Open your <code>flight-booking.actions.ts</code> file and add a <code>loadFlights</code> action creator:</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>[...]
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> loadFlights = createAction(
+    <span class="hljs-string">'[FlightBooking] LoadFlights'</span>,
+    props&lt;{<span class="hljs-keyword">from</span>: <span class="hljs-built_in">string</span>, to: <span class="hljs-built_in">string</span>, urgent: <span class="hljs-built_in">boolean</span>}&gt;()
+);
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Open the file <code>flight-booking.effects.ts</code> and add an effect that takes a <code>FlightsLoadAction</code>, loads the requested flights and returns a <code>FlightsLoadedAction</code>.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div><span class="hljs-meta">@Injectable</span>()
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> FlightBookingEffects {
+
+  loadFlights = createEffect(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> 
+      <span class="hljs-keyword">this</span>.actions$.pipe(
+      ofType(loadFlights), 
+      switchMap(<span class="hljs-function"><span class="hljs-params">a</span> =&gt;</span> <span class="hljs-keyword">this</span>.flightService.find(a.from, a.to, a.urgent)),
+      map(<span class="hljs-function"><span class="hljs-params">flights</span> =&gt;</span> flightsLoaded({flights}))));
+
+  <span class="hljs-keyword">constructor</span>(<span class="hljs-params">
+      <span class="hljs-keyword">private</span> actions$: Actions,
+      <span class="hljs-keyword">private</span> flightService: FlightService</span>) {}
+}
+</div></code></pre>
+ </p>
+ </details>
+<p><strong>Tipp:</strong> Import the <code>Actions</code> type from the module <code>@ngrx/effects</code>:</p>
+<p><code>import {Effect, Actions} from '@ngrx/effects';</code></p>
+</li>
+<li>
+<p>Open the file <code>flight-search.component.ts</code>. Change the <code>search</code> method so that it just dispatches a <code>loadFlights</code> action.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-TypeScript"><div>search(): <span class="hljs-built_in">void</span> {
+  <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.from || !<span class="hljs-keyword">this</span>.to) <span class="hljs-keyword">return</span>;
+
+  <span class="hljs-comment">// New:</span>
+  <span class="hljs-keyword">this</span>.store.dispatch(loadFlights({
+      <span class="hljs-keyword">from</span>: <span class="hljs-keyword">this</span>.from, 
+      to: <span class="hljs-keyword">this</span>.to, 
+      urgent: <span class="hljs-keyword">this</span>.urgent
+    }));
+  
+  <span class="hljs-comment">// Old:</span>
+  <span class="hljs-comment">/*
+  this.flightService
+      .find(this.from, this.to, this.urgent)
+      .subscribe(
+        flights =&gt; { 
+          this.store.dispatch(new flightsLoaded({flights}));
+        },
+        error =&gt; {
+          console.error('error', error);
+        } 
+      );
+  */</span>
+}
+
+</div></code></pre>
+ </p>
+ </details>
+</li>
+<li>
+<p>Test the application.</p>
+</li>
+<li>
+<p>Use the <code>Redux DevTools</code> Chrome plugin to find out which actions are dispatched.</p>
+</li>
+</ol>
+<h2 id="bonus-error-handling">Bonus: Error Handling</h2>
+<ol>
+<li>Open your <code>flight-booking.actions.ts</code> file and add an LoadFlightsError Action without a payload:</li>
+</ol>
+<pre><code class="language-typescript"><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> loadFlightsError = createAction(
+  <span class="hljs-string">'[FlightBooking] Load Flights Error'</span>
+);
+</div></code></pre>
+<ol start="2">
+<li>
+<p>In your <code>flight-booking.effects.ts</code>, add an error handler to the switchMap. This error handler should return the <code>loadFlightError</code> action.</p>
+ <details>
+ <summary>Show code</summary>
+ <p>
+<pre><code class="language-typescript"><div>  loadFlightBookings$ = createEffect(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-keyword">this</span>.actions$.pipe(
+    ofType(loadFlights),
+    switchMap(<span class="hljs-function"><span class="hljs-params">a</span> =&gt;</span> <span class="hljs-keyword">this</span>.flightService.find(a.from, a.to, a.urgent).pipe(
+      map(<span class="hljs-function"><span class="hljs-params">flights</span> =&gt;</span> flightsLoaded({flights})),
+      catchError(<span class="hljs-function"><span class="hljs-params">err</span> =&gt;</span> of(loadFlightsError()))
+    )),
+  ));
+</div></code></pre>
+ </p>  
+ </details>
+</li>
+<li>
+<p>Test your solution. You can simulate an error with the Browser's dev tools by activating offline module in the <code>Network</code> tab.</p>
+</li>
+<li>
+<p>Use the Redux Dev Tools to make sure, that the <code>loadFlightsError</code> action is send to the store.</p>
+</li>
+</ol>
+
+    </body>
+    </html>
