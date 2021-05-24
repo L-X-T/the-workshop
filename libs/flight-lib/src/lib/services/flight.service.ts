@@ -21,12 +21,12 @@ export class FlightService {
     // 1 // no subscription
     // this.find(from, to, urgent);
 
-    /*this.find(from, to, urgent).subscribe(
+    this.find(from, to, urgent).subscribe(
       (flights) => {
         this.flights = flights;
       },
       (err) => console.error('Error loading flights', err)
-    );*/
+    );
 
     // 2 // 2 subscriptions
     /*this.find(from, to, urgent).subscribe(
@@ -53,16 +53,6 @@ export class FlightService {
       },
       (err) => console.error('Error loading flights', err)
     );*/
-
-    // 1
-    this.find(from, to, urgent)
-      .pipe(delay(this.reqDelay))
-      .subscribe(
-        (flights) => {
-          this.flights = flights;
-        },
-        (err) => console.error('Error loading flights', err)
-      );
   }
 
   find(from: string, to: string, urgent: boolean = false): Observable<Flight[]> {

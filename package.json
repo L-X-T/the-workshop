@@ -5,6 +5,7 @@
   "scripts": {
     "ng": "nx",
     "nx": "nx",
+    "demo": "nx e2e flight-app-e2e --watch",
     "start": "ng serve -o",
     "build": "ng build",
     "test": "ng test",
