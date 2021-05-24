@@ -8,7 +8,7 @@ import { FlightCancellingService } from './flight-cancelling.service';
   styleUrls: ['./flight-cancelling.component.css']
 })
 export class FlightCancellingComponent implements OnInit {
-  @Input() flightId: string;
+  @Input() flightId = '';
   @Output() closed = new EventEmitter();
 
   constructor(private service: FlightCancellingService) {}

@@ -11,7 +11,7 @@ import { Flight } from '@flight-workspace/flight-lib';
 })
 export class FlightCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() item: Flight;
-  @Input() selected: boolean;
+  @Input() selected = false;
   @Output() selectedChange = new EventEmitter<boolean>();
 
   constructor(private element: ElementRef, private zone: NgZone) {}
@@ -44,6 +44,6 @@ export class FlightCardComponent implements OnInit, OnChanges, OnDestroy {
       }, 1000);
     });
 
-    return null;
+    return;
   }
 }
