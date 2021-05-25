@@ -1,7 +1,7 @@
 .loading-indicator {
   position: fixed;
-  left: 0px;
-  top: 0px;
+  left: 0;
+  top: 0;
   width: 100%;
   height: 100%;
   background-color: black;
@@ -53,4 +53,11 @@
     transform: scale(1.0);
     -webkit-transform: scale(1.0);
   }
+}
+
+.is-resolving {
+  width: 200px;
+  margin: 100px auto;
+  font-size: 30px;
+  text-align: center;
 }

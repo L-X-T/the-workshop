@@ -4,15 +4,18 @@
   </div>
   <div class="main-panel">
     <navbar-cmp></navbar-cmp>
-    <div class="content">
+
+    <div *ngIf="isResolving" id="is-resolving" class="is-resolving">
+      Is loading ...
+    </div>
+
+    <div *ngIf="!isResolving" class="content">
 
       <router-outlet></router-outlet>
 
       <router-outlet name="aux"></router-outlet>
 
     </div>
-
-
   </div>
 </div>
 
