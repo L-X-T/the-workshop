@@ -1,0 +1,8 @@
+{
+  "flight-booking": {
+    "flight-search": {
+      "search": "Buscar",
+      "found": "{{count}} vuelos encontró."
+    }
+  }
+}

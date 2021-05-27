@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
+
 import { SharedModule } from '../shared/shared.module';
 import { FlightBookingComponent } from './flight-booking.component';
 import { FLIGHT_BOOKING_ROUTES } from './flight-booking.routes';
@@ -11,7 +13,7 @@ import { FlightSearchComponent } from './flight-search/flight-search.component';
 import { PassengerSearchComponent } from './passenger-search/passenger-search.component';
 
 @NgModule({
-  imports: [CommonModule, FormsModule, SharedModule.forChild(), RouterModule.forChild(FLIGHT_BOOKING_ROUTES)],
+  imports: [CommonModule, FormsModule, TranslateModule.forChild(), SharedModule.forChild(), RouterModule.forChild(FLIGHT_BOOKING_ROUTES)],
   declarations: [FlightSearchComponent, FlightCardComponent, PassengerSearchComponent, FlightEditComponent, FlightBookingComponent],
   providers: [],
   exports: [FlightSearchComponent]

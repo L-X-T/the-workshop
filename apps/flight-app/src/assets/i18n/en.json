@@ -1,0 +1,8 @@
+{
+  "flight-booking": {
+    "flight-search": {
+      "search": "Search",
+      "found": "{{count}} entries found."
+    }
+  }
+}

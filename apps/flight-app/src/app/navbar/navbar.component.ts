@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'navbar-cmp',
@@ -6,6 +7,8 @@ import { Component } from '@angular/core';
 })
 export class NavbarComponent {
   private sidebarVisible = false;
+
+  constructor(private translateService: TranslateService) {}
 
   sidebarToggle(): void {
     const body = document.getElementsByTagName('body')[0];
@@ -17,5 +20,9 @@ export class NavbarComponent {
       this.sidebarVisible = false;
       body.classList.remove('nav-open');
     }
+  }
+
+  setLang(lang: string): void {
+    this.translateService.use(lang);
   }
 }
