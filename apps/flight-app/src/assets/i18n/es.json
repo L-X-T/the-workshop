@@ -4,5 +4,8 @@
       "search": "Buscar",
       "found": "{{count}} vuelos encontró."
     }
+  },
+  "demo": {
+    "greeting": "Hola {{name}}!"
   }
 }

@@ -4,5 +4,8 @@
       "search": "Search",
       "found": "{{count}} entries found."
     }
+  },
+  "demo": {
+    "greeting": "Hello {{name}}!"
   }
 }

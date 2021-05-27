@@ -1,6 +1,13 @@
 <div class="card">
   <div class="header">
     <h1 class="title">Welcome {{ userName }}</h1>
+
+    <!-- translation with parameters: translation pipe -->
+    <p>{{ 'demo.greeting' | translate:{'name':'Javier'} }}</p>
+    <!-- translation: directive (key as attribute) -->
+    <p [translate]="'demo.greeting'" [translateParams]="{name: 'Javier'}"></p>
+    <!-- translation: directive (key as content of element)-->
+    <p translate [translateParams]="{name: 'Javier'}">demo.greeting</p>
   </div>
   <div class="content">
     <div *ngIf="needsLogin$ | async" class="alert alert-warning">
