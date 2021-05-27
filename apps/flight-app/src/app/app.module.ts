@@ -18,6 +18,14 @@ import { NavbarComponent } from './navbar/navbar.component';
 import { SharedModule } from './shared/shared.module';
 import { SidebarComponent } from './sidebar/sidebar.component';
 
+import { registerLocaleData } from '@angular/common';
+
+import localeDeAt from '@angular/common/locales/de-AT';
+import localeEs from '@angular/common/locales/es';
+
+registerLocaleData(localeDeAt); // de-AT
+registerLocaleData(localeEs); // es-ES
+
 // required for AOT compilation
 export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {
   return new TranslateHttpLoader(http);
