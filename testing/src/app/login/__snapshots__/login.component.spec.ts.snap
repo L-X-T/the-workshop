@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LoginComponent should make a snapshot 1`] = `
+<app-login
+  message=""
+>
+  <p
+    data-test="msg"
+  >
+    
+  </p><button>
+    Sign-In
+  </button>
+</app-login>
+`;

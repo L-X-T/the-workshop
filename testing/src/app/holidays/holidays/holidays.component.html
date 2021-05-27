@@ -1,0 +1,5 @@
+<div class="container">
+  <ng-container *ngrxLet="holidays$; let holidays">
+    <app-holiday-card *ngFor="let holiday of holidays" [holiday]="holiday"></app-holiday-card>
+  </ng-container>
+</div>
