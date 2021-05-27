@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { Flight } from '@flight-workspace/flight-lib';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'flight-card',
@@ -14,7 +15,7 @@ export class FlightCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() selected: boolean;
   @Output() selectedChange = new EventEmitter<boolean>();
 
-  constructor(private element: ElementRef, private zone: NgZone) {}
+  constructor(public translateService: TranslateService, private element: ElementRef, private zone: NgZone) {}
 
   ngOnInit(): void {}
 

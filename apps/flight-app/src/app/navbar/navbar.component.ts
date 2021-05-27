@@ -24,5 +24,7 @@ export class NavbarComponent {
 
   setLang(lang: string): void {
     this.translateService.use(lang);
+
+    // notify backend
   }
 }
